@@ -1,6 +1,16 @@
 FROM node:22-alpine
 
+ARG VERSION=dev
+
+LABEL org.opencontainers.image.title="Cinephage Nuvio Bridge" \
+      org.opencontainers.image.description="Stremio-compatible bridge from Cinephage to NuvioTV" \
+      org.opencontainers.image.source="https://github.com/vampywiz17/cinephage-nuvio-bridge" \
+      org.opencontainers.image.url="https://github.com/vampywiz17/cinephage-nuvio-bridge" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.version="${VERSION}"
+
 ENV NODE_ENV=production
+ENV BRIDGE_IMAGE_VERSION=${VERSION}
 WORKDIR /app
 
 COPY --chown=node:node package.json ./

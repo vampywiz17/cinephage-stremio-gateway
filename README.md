@@ -1,5 +1,9 @@
 # Cinephage Nuvio Bridge
 
+[![CI](https://github.com/vampywiz17/cinephage-nuvio-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/vampywiz17/cinephage-nuvio-bridge/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/vampywiz17/cinephage-nuvio-bridge)](https://github.com/vampywiz17/cinephage-nuvio-bridge/releases)
+[![Container](https://img.shields.io/badge/ghcr.io-container-blue)](https://github.com/vampywiz17/cinephage-nuvio-bridge/pkgs/container/cinephage-nuvio-bridge)
+
 A small, read-only bridge that exposes media already downloaded by
 [Cinephage](https://github.com/MoldyTaint/Cinephage) as a standard Stremio addon for
 [NuvioTV](https://github.com/NuvioMedia/NuvioTV).
@@ -55,6 +59,10 @@ library metadata, while the bridge streams files from read-only mounted media vo
    docker network create cinephage
    docker compose up -d --build
    ```
+
+   Compose uses `pull_policy: build`, builds the image locally, and tags it as
+   `ghcr.io/vampywiz17/cinephage-nuvio-bridge:0.1.0`. Set `BRIDGE_VERSION` if you are building a
+   different checked-out release.
 
 5. In NuvioTV, install:
 
@@ -117,6 +125,9 @@ inside one of the configured target roots.
 | `CINEPHAGE_TIMEOUT_SECONDS` | no | `15` | Upstream request timeout. |
 | `LOG_LEVEL` | no | `info` | `debug`, `info`, `warn`, or `error`. |
 
+`BRIDGE_VERSION` is a Docker Compose interpolation variable rather than an application environment
+variable. Its default must match the version in `package.json`.
+
 ### Optional addon token
 
 If `ADDON_TOKEN` is configured, install the manifest URL with the token:
@@ -171,6 +182,32 @@ npm test
 npm run check
 npm start
 ```
+
+## Versioning and container releases
+
+The project follows [Semantic Versioning](https://semver.org/). The authoritative application
+version is the `version` field in `package.json`; the Stremio manifest and health endpoint read it
+at runtime.
+
+To prepare a release:
+
+1. Update `package.json` and both `BRIDGE_VERSION` defaults in `docker-compose.yml`.
+2. Run `npm test` and `npm run check`.
+3. Merge the change to `main`.
+4. Create and push the matching tag, for example:
+
+   ```bash
+   git tag -a v0.1.0 -m "v0.1.0"
+   git push origin v0.1.0
+   ```
+
+Every push to `main` publishes a multi-platform `edge` image. A release tag additionally verifies
+the version, creates `linux/amd64` and `linux/arm64` images, publishes them to
+`ghcr.io/vampywiz17/cinephage-nuvio-bridge`, attaches semantic tags (`0.1.0`, `0.1`, `0`, and
+`latest` for stable releases), generates provenance and an SBOM, and creates a GitHub Release.
+
+To use a published image instead of building locally, remove the `build:` block from Compose or
+run it from a deployment-specific override file.
 
 ## How availability is determined
 

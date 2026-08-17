@@ -4,12 +4,19 @@
   "description": "A minimal Stremio-compatible bridge that exposes a Cinephage library to NuvioTV.",
   "type": "module",
   "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/vampywiz17/cinephage-nuvio-bridge#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vampywiz17/cinephage-nuvio-bridge.git"
+  },
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "start": "node src/main.js",
     "test": "node --test",
-    "check": "node --check src/main.js && node --check src/server.js"
+    "check": "node --check src/main.js && node --check src/server.js && node scripts/check-release-version.js",
+    "release:check": "node scripts/check-release-version.js"
   }
 }
