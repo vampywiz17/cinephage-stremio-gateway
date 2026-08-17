@@ -15,6 +15,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   manually created, and compatible virtual-library links.
 - Signed media URLs now resolve valid `.strm` files with a temporary redirect without proxying the
   target stream.
+- Same-repository pull requests publish an `linux/amd64` GHCR review image after CI succeeds.
 
 ## [0.2.0] - 2026-08-17
 

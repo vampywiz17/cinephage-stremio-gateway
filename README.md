@@ -215,6 +215,11 @@ the version, creates `linux/amd64` and `linux/arm64` images, publishes them to
 `ghcr.io/vampywiz17/cinephage-nuvio-bridge`, attaches semantic tags (`0.3.0`, `0.3`, `0`, and
 `latest` for stable releases), generates provenance and an SBOM, and creates a GitHub Release.
 
+Pull requests whose branch belongs to this repository publish an `linux/amd64` review image after
+CI succeeds. Its tag is `pr-<number>`, for example
+`ghcr.io/vampywiz17/cinephage-nuvio-bridge:pr-3`. Forked pull requests never receive package write
+permission and therefore skip this job.
+
 To use a published image instead of building locally, remove the `build:` block from Compose or
 run it from a deployment-specific override file.
 
