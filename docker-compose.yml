@@ -1,0 +1,27 @@
+services:
+  cinephage-nuvio-bridge:
+    build: .
+    container_name: cinephage-nuvio-bridge
+    restart: unless-stopped
+    environment:
+      CINEPHAGE_URL: ${CINEPHAGE_URL:-http://cinephage:3000}
+      CINEPHAGE_API_KEY: ${CINEPHAGE_API_KEY}
+      BRIDGE_SECRET: ${BRIDGE_SECRET}
+      PATH_MAPPINGS: '${PATH_MAPPINGS:-{"/movies":"/media/movies","/tv":"/media/tv"}}'
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8090}
+      ADDON_TOKEN: ${ADDON_TOKEN:-}
+      LIBRARY_CACHE_TTL_SECONDS: ${LIBRARY_CACHE_TTL_SECONDS:-30}
+      SERIES_CACHE_TTL_SECONDS: ${SERIES_CACHE_TTL_SECONDS:-30}
+      STREAM_TOKEN_TTL_SECONDS: ${STREAM_TOKEN_TTL_SECONDS:-21600}
+      TZ: ${TZ:-UTC}
+    ports:
+      - "8090:8090"
+    volumes:
+      - /path/to/movies:/media/movies:ro
+      - /path/to/tv:/media/tv:ro
+    networks:
+      - cinephage
+
+networks:
+  cinephage:
+    external: true

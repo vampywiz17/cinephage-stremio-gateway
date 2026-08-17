@@ -1,0 +1,15 @@
+{
+  "name": "cinephage-nuvio-bridge",
+  "version": "0.1.0",
+  "description": "A minimal Stremio-compatible bridge that exposes a Cinephage library to NuvioTV.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/main.js",
+    "test": "node --test",
+    "check": "node --check src/main.js && node --check src/server.js"
+  }
+}
