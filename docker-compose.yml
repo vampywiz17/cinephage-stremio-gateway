@@ -1,6 +1,11 @@
 services:
   cinephage-nuvio-bridge:
-    build: .
+    image: ghcr.io/vampywiz17/cinephage-nuvio-bridge:${BRIDGE_VERSION:-0.1.0}
+    pull_policy: build
+    build:
+      context: .
+      args:
+        VERSION: ${BRIDGE_VERSION:-0.1.0}
     container_name: cinephage-nuvio-bridge
     restart: unless-stopped
     environment:

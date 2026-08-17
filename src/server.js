@@ -4,9 +4,9 @@ import { MediaLibrary } from './library.js';
 import { PathMapper } from './path-mapper.js';
 import { StreamTokenService } from './token.js';
 import { serveMedia } from './media-server.js';
+import { VERSION } from './version.js';
 
 const ADDON_ID = 'community.cinephage.nuvio.bridge';
-const ADDON_VERSION = '0.1.0';
 
 function sendJson(res, status, body, headers = {}) {
   res.writeHead(status, {
@@ -56,7 +56,7 @@ function manifest() {
   ];
   return {
     id: ADDON_ID,
-    version: ADDON_VERSION,
+    version: VERSION,
     name: 'Cinephage Library',
     description: 'Streams media already present in your Cinephage library.',
     resources: ['catalog', 'meta', 'stream'],
@@ -136,7 +136,7 @@ export function createApp(config, logger) {
 
     try {
       if (pathname === '/health') {
-        return sendJson(res, 200, { status: 'ok', version: ADDON_VERSION });
+        return sendJson(res, 200, { status: 'ok', version: VERSION });
       }
 
       if (pathname === '/') {
