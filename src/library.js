@@ -13,6 +13,137 @@ function compact(object) {
   return Object.fromEntries(Object.entries(object).filter(([, value]) => value !== undefined));
 }
 
+function text(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function knownText(value) {
+  const result = text(value);
+  return result && !['unknown', 'n/a', 'none'].includes(result.toLowerCase()) ? result : undefined;
+}
+
+function unique(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function formatSource(value) {
+  const source = knownText(value);
+  if (!source) return undefined;
+  const normalized = source.toLowerCase().replaceAll(/[^a-z0-9]/g, '');
+  return (
+    {
+      bluray: 'BluRay',
+      webdl: 'WEB-DL',
+      webrip: 'WEBRip',
+      hdtv: 'HDTV',
+      dvd: 'DVD',
+      remux: 'Remux'
+    }[normalized] || source
+  );
+}
+
+function formatCodec(value) {
+  const codec = knownText(value);
+  if (!codec) return undefined;
+  return (
+    {
+      h264: 'H.264',
+      avc: 'H.264',
+      h265: 'HEVC',
+      hevc: 'HEVC',
+      x264: 'H.264',
+      x265: 'HEVC',
+      av1: 'AV1',
+      vp9: 'VP9'
+    }[codec.toLowerCase().replaceAll(/[^a-z0-9]/g, '')] || codec
+  );
+}
+
+function formatHdr(value) {
+  const hdr = knownText(value);
+  if (!hdr) return undefined;
+  const tags = [];
+  if (/dolby[\s-]*vision|\bdv\b/i.test(hdr)) tags.push('Dolby Vision');
+  if (/hdr10\+/i.test(hdr)) tags.push('HDR10+');
+  else if (/hdr10/i.test(hdr)) tags.push('HDR10');
+  else if (/\bhdr\b/i.test(hdr)) tags.push('HDR');
+  if (/\bhlg\b/i.test(hdr)) tags.push('HLG');
+  return tags.length ? unique(tags).join(', ') : hdr;
+}
+
+function formatChannels(value) {
+  const channels = Number(value);
+  if (!Number.isFinite(channels) || channels <= 0) return undefined;
+  if (channels === 1) return 'Mono';
+  if (channels === 2) return 'Stereo';
+  if (channels === 6) return '5.1';
+  if (channels === 8) return '7.1';
+  return `${channels}ch`;
+}
+
+function formatLanguages(values) {
+  if (!Array.isArray(values)) return undefined;
+  const languages = unique(
+    values.map((value) => text(value)?.toUpperCase()).filter((value) => value && value !== 'UND')
+  );
+  return languages.length ? languages.join('/') : undefined;
+}
+
+function formatBitrate(size, runtime) {
+  const bytes = Number(size);
+  const seconds = Number(runtime);
+  if (!Number.isFinite(bytes) || bytes <= 0 || !Number.isFinite(seconds) || seconds <= 0) {
+    return undefined;
+  }
+  return `${((bytes * 8) / seconds / 1_000_000).toFixed(1)} Mbps`;
+}
+
+function technicalDescription(file, filename) {
+  const quality = file.quality && typeof file.quality === 'object' ? file.quality : {};
+  const mediaInfo = file.mediaInfo && typeof file.mediaInfo === 'object' ? file.mediaInfo : {};
+  const resolution =
+    (typeof file.quality === 'string' ? knownText(file.quality) : undefined) ||
+    knownText(quality.resolution) ||
+    (Number(mediaInfo.height) > 0 ? `${Number(mediaInfo.height)}p` : undefined);
+  const source = formatSource(quality.source);
+  const codec = formatCodec(mediaInfo.videoCodec || quality.codec);
+  const profile = knownText(mediaInfo.videoProfile);
+  const bitDepth = Number(mediaInfo.videoBitDepth);
+  const video = unique([
+    codec,
+    profile,
+    !profile && Number.isFinite(bitDepth) && bitDepth > 0 ? `${bitDepth}-bit` : undefined
+  ]).join(' ');
+  const hdr = formatHdr(mediaInfo.videoHdrFormat || quality.hdr);
+  const audioCodec = knownText(mediaInfo.audioCodec);
+  const audioChannels = formatChannels(mediaInfo.audioChannels);
+  const audioLanguages = formatLanguages(mediaInfo.audioLanguages);
+  const subtitleLanguages = formatLanguages(mediaInfo.subtitleLanguages);
+  const bitrate = formatBitrate(file.size, mediaInfo.runtime);
+  const size = Number(file.size) > 0 ? formatBytes(Number(file.size)) : undefined;
+
+  const playback = unique([
+    'Direct Play',
+    resolution,
+    source,
+    video || undefined,
+    hdr,
+    knownText(file.edition)
+  ]).join(' • ');
+  const audio = unique([audioCodec, audioChannels, audioLanguages]).join(' ');
+  const media = [
+    bitrate,
+    audio ? `Audio: ${audio}` : undefined,
+    subtitleLanguages ? `Subtitles: ${subtitleLanguages}` : undefined,
+    size,
+    knownText(file.releaseGroup)
+  ]
+    .filter(Boolean)
+    .join(' • ');
+
+  return [filename, playback || undefined, media || undefined].filter(Boolean).join('\n');
+}
+
 function releaseInfo(item) {
   if (item.year) return String(item.year);
   const date = item.releaseDate || item.firstAirDate;
@@ -201,22 +332,13 @@ export class MediaLibrary {
   }
 
   #stream(item, file, makeUrl, type, mediaId) {
-    const mediaInfo = file.mediaInfo && typeof file.mediaInfo === 'object' ? file.mediaInfo : {};
-    const quality =
-      (typeof file.quality === 'string' ? file.quality : null) ||
-      file.quality?.resolution ||
-      file.quality?.quality ||
-      mediaInfo.resolution ||
-      'Local';
     const size = Number(file.size) || undefined;
     const filename = path.posix.basename(String(file.relativePath).replaceAll('\\', '/'));
-    const details = [quality, size ? formatBytes(size) : null, file.edition]
-      .filter(Boolean)
-      .join(' • ');
+    const description = technicalDescription(file, filename);
     return compact({
       name: 'Cinephage',
-      title: details || 'Local file',
-      description: filename,
+      title: description,
+      description,
       url: makeUrl({ type, mediaId, fileId: file.id }),
       behaviorHints: compact({
         notWebReady: true,
@@ -233,9 +355,10 @@ export function formatBytes(value) {
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let size = value;
   let unit = 0;
-  while (size >= 1000 && unit < units.length - 1) {
-    size /= 1000;
+  while (size >= 1024 && unit < units.length - 1) {
+    size /= 1024;
     unit += 1;
   }
-  return `${size >= 10 || unit === 0 ? size.toFixed(0) : size.toFixed(1)} ${units[unit]}`;
+  const decimals = unit > 0 && size < 100 ? 1 : 0;
+  return `${size.toFixed(decimals)} ${units[unit]}`;
 }

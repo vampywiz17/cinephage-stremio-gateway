@@ -42,7 +42,31 @@ test('exposes only downloaded titles and streams files with byte ranges', async 
               rootFolderPath: '/cinephage/movies',
               path: 'Present (2025)',
               hasFile: true,
-              files: [{ id: 'file-1', relativePath: 'Present.mkv', size: 10 }]
+              files: [
+                {
+                  id: 'file-1',
+                  relativePath: 'Present.mkv',
+                  size: 20335782489,
+                  quality: {
+                    resolution: '2160p',
+                    source: 'webdl',
+                    codec: 'h265',
+                    hdr: 'dolby-vision'
+                  },
+                  mediaInfo: {
+                    videoCodec: 'HEVC',
+                    videoProfile: 'Main 10',
+                    videoBitDepth: 10,
+                    videoHdrFormat: 'Dolby Vision HDR10',
+                    runtime: 6494,
+                    audioCodec: 'DD+',
+                    audioChannels: 6,
+                    audioLanguages: ['hun', 'eng'],
+                    subtitleLanguages: ['hun', 'hun', 'eng']
+                  },
+                  releaseGroup: 'PTHD'
+                }
+              ]
             },
             {
               id: 'movie-missing',
@@ -161,6 +185,15 @@ test('exposes only downloaded titles and streams files with byte ranges', async 
 
   const streamResponse = await fetch(`${bridgeUrl}/stream/movie/tt0000100.json`).then((r) => r.json());
   assert.equal(streamResponse.streams.length, 1);
+  assert.equal(
+    streamResponse.streams[0].description,
+    [
+      'Present.mkv',
+      'Direct Play • 2160p • WEB-DL • HEVC Main 10 • Dolby Vision, HDR10',
+      '25.1 Mbps • Audio: DD+ 5.1 HUN/ENG • Subtitles: HUN/ENG • 18.9 GB • PTHD'
+    ].join('\n')
+  );
+  assert.equal(streamResponse.streams[0].title, streamResponse.streams[0].description);
 
   const ranged = await fetch(streamResponse.streams[0].url, { headers: { range: 'bytes=2-5' } });
   assert.equal(ranged.status, 206);

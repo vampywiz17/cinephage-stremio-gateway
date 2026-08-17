@@ -61,7 +61,7 @@ library metadata, while the bridge streams files from read-only mounted media vo
    ```
 
    Compose uses `pull_policy: build`, builds the image locally, and tags it as
-   `ghcr.io/vampywiz17/cinephage-nuvio-bridge:0.1.0`. Set `BRIDGE_VERSION` if you are building a
+   `ghcr.io/vampywiz17/cinephage-nuvio-bridge:0.2.0`. Set `BRIDGE_VERSION` if you are building a
    different checked-out release.
 
 5. In NuvioTV, install:
@@ -157,6 +157,11 @@ GET /health
 
 IMDb IDs are preferred. When Cinephage has no IMDb ID, the bridge uses `tmdb:<id>`.
 
+Stream responses include a Nuvio-friendly technical description when Cinephage provides media
+information. It can contain resolution, source, video codec and profile, HDR format, calculated
+overall bitrate, audio codec/channels/languages, embedded subtitle languages, release group, and
+file size. The description is derived from the Cinephage API; the bridge does not scan media files.
+
 ## Reverse proxy example (Caddy)
 
 ```caddyfile
@@ -197,13 +202,13 @@ To prepare a release:
 4. Create and push the matching tag, for example:
 
    ```bash
-   git tag -a v0.1.0 -m "v0.1.0"
-   git push origin v0.1.0
+   git tag -a v0.2.0 -m "v0.2.0"
+   git push origin v0.2.0
    ```
 
 Every push to `main` publishes a multi-platform `edge` image. A release tag additionally verifies
 the version, creates `linux/amd64` and `linux/arm64` images, publishes them to
-`ghcr.io/vampywiz17/cinephage-nuvio-bridge`, attaches semantic tags (`0.1.0`, `0.1`, `0`, and
+`ghcr.io/vampywiz17/cinephage-nuvio-bridge`, attaches semantic tags (`0.2.0`, `0.2`, `0`, and
 `latest` for stable releases), generates provenance and an SBOM, and creates a GitHub Release.
 
 To use a published image instead of building locally, remove the `build:` block from Compose or
