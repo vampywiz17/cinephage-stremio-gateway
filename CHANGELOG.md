@@ -7,6 +7,15 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-17
+
+### Added
+
+- Playback for mounted `.strm` files containing an HTTP(S) target, including Cinephage-generated,
+  manually created, and compatible virtual-library links.
+- Signed media URLs now resolve valid `.strm` files with a temporary redirect without proxying the
+  target stream.
+
 ## [0.2.0] - 2026-08-17
 
 ### Added
@@ -31,6 +40,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Automated tests and Docker build validation.
 - Versioned multi-platform GHCR publishing with provenance, SBOM, and GitHub Releases.
 
-[Unreleased]: https://github.com/vampywiz17/cinephage-nuvio-bridge/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/vampywiz17/cinephage-nuvio-bridge/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/vampywiz17/cinephage-nuvio-bridge/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/vampywiz17/cinephage-nuvio-bridge/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/vampywiz17/cinephage-nuvio-bridge/releases/tag/v0.1.0

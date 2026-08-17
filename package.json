@@ -1,6 +1,6 @@
 {
   "name": "cinephage-nuvio-bridge",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A minimal Stremio-compatible bridge that exposes a Cinephage library to NuvioTV.",
   "type": "module",
   "private": true,
