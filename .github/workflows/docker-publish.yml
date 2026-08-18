@@ -41,7 +41,7 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/vampywiz17/cinephage-nuvio-bridge
+          images: ghcr.io/vampywiz17/cinephage-stremio-gateway
           tags: |
             type=raw,value=edge,enable=${{ github.ref_type == 'branch' }}
             type=semver,pattern={{version}},enable=${{ github.ref_type == 'tag' }}
@@ -67,5 +67,23 @@ jobs:
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             echo "GitHub release $GITHUB_REF_NAME already exists."
           else
-            gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes --title "$GITHUB_REF_NAME"
+            version="${{ steps.version.outputs.version }}"
+            notes=$(cat <<EOF
+          ## Docker release
+
+          Multi-platform container image for **linux/amd64** and **linux/arm64**:
+
+          \`\`\`shell
+          docker pull ghcr.io/vampywiz17/cinephage-stremio-gateway:$version
+          \`\`\`
+
+          Published tags: \`$version\`, \`${version%.*}\`, \`${version%%.*}\`, and \`latest\`.
+          Use the repository's \`docker-compose.yml\` as the reference deployment configuration.
+          EOF
+            )
+            gh release create "$GITHUB_REF_NAME" \
+              --verify-tag \
+              --generate-notes \
+              --title "Cinephage Stremio Gateway $GITHUB_REF_NAME (Docker)" \
+              --notes "$notes"
           fi

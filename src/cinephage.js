@@ -34,7 +34,7 @@ export class CinephageClient {
         headers: {
           accept: 'application/json',
           'x-api-key': this.#config.apiKey,
-          'user-agent': 'cinephage-nuvio-bridge/0.1'
+          'user-agent': 'cinephage-stremio-gateway/0.3'
         },
         signal: controller.signal
       });

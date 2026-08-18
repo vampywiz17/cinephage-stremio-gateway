@@ -34,5 +34,34 @@ jobs:
         with:
           context: .
           push: false
-          tags: cinephage-nuvio-bridge:test
+          tags: cinephage-stremio-gateway:test
+          build-args: VERSION=${{ steps.version.outputs.version }}
+
+  review-image:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    needs: [test, docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        name: Resolve project version
+        shell: bash
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: ghcr.io/vampywiz17/cinephage-stremio-gateway:pr-${{ github.event.pull_request.number }}
           build-args: VERSION=${{ steps.version.outputs.version }}

@@ -1,14 +1,14 @@
 {
-  "name": "cinephage-nuvio-bridge",
-  "version": "0.2.0",
-  "description": "A minimal Stremio-compatible bridge that exposes a Cinephage library to NuvioTV.",
+  "name": "cinephage-stremio-gateway",
+  "version": "0.4.0",
+  "description": "A minimal Stremio Addon Protocol bridge for Cinephage, compatible with Stremio and NuvioTV.",
   "type": "module",
   "private": true,
   "license": "MIT",
-  "homepage": "https://github.com/vampywiz17/cinephage-nuvio-bridge#readme",
+  "homepage": "https://github.com/vampywiz17/cinephage-stremio-gateway#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vampywiz17/cinephage-nuvio-bridge.git"
+    "url": "git+https://github.com/vampywiz17/cinephage-stremio-gateway.git"
   },
   "engines": {
     "node": ">=22"
