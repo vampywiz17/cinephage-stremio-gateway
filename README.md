@@ -71,7 +71,7 @@ version locally; release images are published to GHCR for `linux/amd64` and `lin
    ```
 
    Compose uses `pull_policy: build`, builds the image locally, and tags it as
-   `ghcr.io/vampywiz17/cinephage-stremio-gateway:0.4.0`. Set `BRIDGE_VERSION` if you are building a
+   `ghcr.io/vampywiz17/cinephage-stremio-gateway:0.4.1`. Set `BRIDGE_VERSION` if you are building a
    different checked-out release.
 
 5. Install the manifest URL in Stremio or NuvioTV:
@@ -219,13 +219,13 @@ To prepare a release:
 4. Create and push the matching tag, for example:
 
    ```bash
-   git tag -a v0.4.0 -m "v0.4.0"
-   git push origin v0.4.0
+   git tag -a v0.4.1 -m "v0.4.1"
+   git push origin v0.4.1
    ```
 
 Every push to `main` publishes a multi-platform `edge` image. A release tag additionally verifies
 the version, creates `linux/amd64` and `linux/arm64` images, publishes them to
-`ghcr.io/vampywiz17/cinephage-stremio-gateway`, attaches semantic tags (`0.4.0`, `0.4`, `0`, and
+`ghcr.io/vampywiz17/cinephage-stremio-gateway`, attaches semantic tags (`0.4.1`, `0.4`, `0`, and
 `latest` for stable releases), generates provenance and an SBOM, and creates a GitHub Release.
 
 Pull requests whose branch belongs to this repository publish an `linux/amd64` review image after
