@@ -1,19 +1,24 @@
-# Cinephage Nuvio Bridge
+# Cinephage Stremio Gateway
 
-[![CI](https://github.com/vampywiz17/cinephage-nuvio-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/vampywiz17/cinephage-nuvio-bridge/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/vampywiz17/cinephage-nuvio-bridge)](https://github.com/vampywiz17/cinephage-nuvio-bridge/releases)
-[![Container](https://img.shields.io/badge/ghcr.io-container-blue)](https://github.com/vampywiz17/cinephage-nuvio-bridge/pkgs/container/cinephage-nuvio-bridge)
+[![CI](https://github.com/vampywiz17/cinephage-stremio-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/vampywiz17/cinephage-stremio-gateway/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/vampywiz17/cinephage-stremio-gateway)](https://github.com/vampywiz17/cinephage-stremio-gateway/releases)
+[![Container](https://img.shields.io/badge/ghcr.io-container-blue)](https://github.com/vampywiz17/cinephage-stremio-gateway/pkgs/container/cinephage-stremio-gateway)
 
 A small, read-only bridge that exposes media files and stream links managed by
-[Cinephage](https://github.com/MoldyTaint/Cinephage) as a standard Stremio addon for
-[NuvioTV](https://github.com/NuvioMedia/NuvioTV).
+[Cinephage](https://github.com/MoldyTaint/Cinephage) through the standard
+[Stremio Addon Protocol](https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/protocol.md).
+It is designed for both [Stremio](https://www.stremio.com/) and Stremio-compatible clients such
+as [NuvioTV](https://github.com/NuvioMedia/NuvioTV).
 
 The bridge does not modify either upstream project. Cinephage remains the source of truth for
 library metadata, while the bridge streams files from read-only mounted media volumes.
 
+> Upgrading from `cinephage-nuvio-bridge`: change the image, service, and container name to
+> `cinephage-stremio-gateway`. The addon must also be reinstalled because its manifest ID changed.
+
 ## What it does
 
-- Provides Stremio `manifest`, `catalog`, `meta`, and `stream` resources.
+- Provides standard Stremio `manifest`, `catalog`, `meta`, and `stream` resources.
 - Shows only movies for which Cinephage reports `hasFile: true` and at least one playable file
   record, including HTTP(S) `.strm` links.
 - Shows only series for which Cinephage reports at least one downloaded episode file.
@@ -27,8 +32,10 @@ library metadata, while the bridge streams files from read-only mounted media vo
 ## Important limitations
 
 - This is a direct-play bridge. It does not transcode unsupported video/audio formats.
-- A `.strm` target must be reachable from the device running NuvioTV. Docker-only hostnames and
+- A `.strm` target must be reachable from the device running the client. Docker-only hostnames and
   non-HTTP(S) targets are not supported.
+- Stremio requires HTTPS for remote addons, except when the addon is served from `127.0.0.1`.
+  NuvioTV may allow plain HTTP on a trusted LAN, depending on the platform.
 - The media folders must be mounted into the bridge container read-only.
 - Cinephage's library API is not currently a formally versioned public API. The bridge uses a
   small adapter and validates response shapes, but a future upstream API change may require an
@@ -36,6 +43,9 @@ library metadata, while the bridge streams files from read-only mounted media vo
 - Only use the bridge for media you are authorized to access.
 
 ## Quick start with Docker Compose
+
+The supported deployment method is Docker. The included Compose file builds the checked-out
+version locally; release images are published to GHCR for `linux/amd64` and `linux/arm64`.
 
 1. Create a Cinephage API key.
 2. Copy `.env.example` to `.env` and set at least:
@@ -65,17 +75,18 @@ library metadata, while the bridge streams files from read-only mounted media vo
    ```
 
    Compose uses `pull_policy: build`, builds the image locally, and tags it as
-   `ghcr.io/vampywiz17/cinephage-nuvio-bridge:0.3.0`. Set `BRIDGE_VERSION` if you are building a
+   `ghcr.io/vampywiz17/cinephage-stremio-gateway:0.4.0`. Set `BRIDGE_VERSION` if you are building a
    different checked-out release.
 
-5. In NuvioTV, install:
+5. Install the manifest URL in Stremio or NuvioTV:
 
    ```text
    http://192.168.1.20:8090/manifest.json
    ```
 
-For access outside a trusted LAN, place the bridge behind an HTTPS reverse proxy and set
-`PUBLIC_URL` to the external HTTPS origin.
+For Stremio, or for any access outside a trusted LAN, place the bridge behind an HTTPS reverse
+proxy and set `PUBLIC_URL` to the external HTTPS origin. Stremio accepts plain HTTP only from
+`127.0.0.1`.
 
 ## Path mappings
 
@@ -134,14 +145,17 @@ variable. Its default must match the version in `package.json`.
 
 ### Optional addon token
 
-If `ADDON_TOKEN` is configured, install the manifest URL with the token:
+If `ADDON_TOKEN` is configured, use the path-based manifest URL recommended for Stremio addons:
 
 ```text
-https://media.example.com/manifest.json?token=your-token
+https://media.example.com/your-token/manifest.json
 ```
 
-NuvioTV preserves the query string when requesting catalog, meta, and stream resources. Generated
-media URLs use their own expiring signature and do not contain the addon token.
+The token path is preserved when Stremio or NuvioTV requests catalog, meta, and stream resources.
+For compatibility with existing NuvioTV installations, the legacy
+`/manifest.json?token=your-token` form is also accepted. New installations should use the
+path-based form. Generated media URLs use their own expiring signature and do not contain the
+addon token.
 
 ## Stremio resources
 
@@ -161,7 +175,7 @@ GET /health
 
 IMDb IDs are preferred. When Cinephage has no IMDb ID, the bridge uses `tmdb:<id>`.
 
-Stream responses include a Nuvio-friendly technical description when Cinephage provides media
+Stream responses include a client-friendly technical description when Cinephage provides media
 information. It can contain resolution, source, video codec and profile, HDR format, calculated
 overall bitrate, audio codec/channels/languages, embedded subtitle languages, release group, and
 file size. The description is derived from the Cinephage API; the bridge does not scan media files.
@@ -170,7 +184,7 @@ file size. The description is derived from the Cinephage API; the bridge does no
 
 ```caddyfile
 media.example.com {
-    reverse_proxy cinephage-nuvio-bridge:8090
+    reverse_proxy cinephage-stremio-gateway:8090
 }
 ```
 
@@ -181,6 +195,9 @@ PUBLIC_URL=https://media.example.com
 ```
 
 The proxy must not buffer complete media responses and must pass `Range` headers.
+
+Stremio installation URLs can also use the `stremio://` scheme. The bridge landing page at `/`
+provides an install link using that scheme.
 
 ## Development
 
@@ -206,18 +223,18 @@ To prepare a release:
 4. Create and push the matching tag, for example:
 
    ```bash
-   git tag -a v0.3.0 -m "v0.3.0"
-   git push origin v0.3.0
+   git tag -a v0.4.0 -m "v0.4.0"
+   git push origin v0.4.0
    ```
 
 Every push to `main` publishes a multi-platform `edge` image. A release tag additionally verifies
 the version, creates `linux/amd64` and `linux/arm64` images, publishes them to
-`ghcr.io/vampywiz17/cinephage-nuvio-bridge`, attaches semantic tags (`0.3.0`, `0.3`, `0`, and
+`ghcr.io/vampywiz17/cinephage-stremio-gateway`, attaches semantic tags (`0.4.0`, `0.4`, `0`, and
 `latest` for stable releases), generates provenance and an SBOM, and creates a GitHub Release.
 
 Pull requests whose branch belongs to this repository publish an `linux/amd64` review image after
 CI succeeds. Its tag is `pr-<number>`, for example
-`ghcr.io/vampywiz17/cinephage-nuvio-bridge:pr-3`. Forked pull requests never receive package write
+`ghcr.io/vampywiz17/cinephage-stremio-gateway:pr-3`. Forked pull requests never receive package write
 permission and therefore skip this job.
 
 To use a published image instead of building locally, remove the `build:` block from Compose or

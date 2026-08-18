@@ -14,7 +14,7 @@ const logger = createLogger(config.logLevel);
 const server = createApp(config, logger);
 
 server.listen(config.port, '0.0.0.0', () => {
-  logger.info('Cinephage Nuvio Bridge started', {
+  logger.info('Cinephage Stremio Gateway started', {
     port: config.port,
     cinephageUrl: config.cinephageUrl,
     publicUrl: config.publicUrl || 'request-derived',

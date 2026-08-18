@@ -204,6 +204,10 @@ test('exposes only downloaded titles and streams files with byte ranges', async 
     await rm(temporaryRoot, { recursive: true, force: true });
   });
 
+  const addonManifest = await fetch(`${bridgeUrl}/manifest.json`).then((r) => r.json());
+  assert.equal(addonManifest.id, 'community.cinephage.stremio.gateway');
+  assert.equal(addonManifest.name, 'Cinephage Stremio Gateway');
+
   const movieCatalog = await fetch(`${bridgeUrl}/catalog/movie/cinephage-movies.json`).then((r) => r.json());
   assert.deepEqual(movieCatalog.metas.map((item) => item.name), [
     'Present',
@@ -249,6 +253,7 @@ test('exposes only downloaded titles and streams files with byte ranges', async 
     'tt0000199:1:1',
     'tt0000199:1:3'
   ]);
+  assert.ok(seriesMeta.meta.videos.every((video) => !Number.isNaN(Date.parse(video.released))));
 
   const episodeStreams = await fetch(`${bridgeUrl}/stream/series/tt0000199:1:1.json`).then((r) => r.json());
   assert.equal(episodeStreams.streams.length, 1);
@@ -261,4 +266,44 @@ test('exposes only downloaded titles and streams files with byte ranges', async 
   const episodeRedirect = await fetch(strmEpisodeStreams.streams[0].url, { redirect: 'manual' });
   assert.equal(episodeRedirect.status, 307);
   assert.equal(episodeRedirect.headers.get('location'), episodeStrmTarget);
+});
+
+test('supports Stremio path tokens and legacy query tokens', async (t) => {
+  const addonToken = 'shared token';
+  const bridge = createApp(
+    {
+      cinephageUrl: 'http://127.0.0.1:1',
+      apiKey: 'test-key',
+      secret: 's'.repeat(32),
+      pathMappings: [{ source: '/cinephage', target: os.tmpdir() }],
+      publicUrl: '',
+      addonToken,
+      libraryCacheTtlMs: 1000,
+      seriesCacheTtlMs: 1000,
+      streamTokenTtlSeconds: 60,
+      cinephageTimeoutMs: 1000,
+      logLevel: 'error'
+    },
+    silentLogger
+  );
+  const bridgeUrl = await listen(bridge);
+  t.after(() => close(bridge));
+
+  assert.equal((await fetch(`${bridgeUrl}/manifest.json`)).status, 401);
+
+  const pathManifest = await fetch(
+    `${bridgeUrl}/${encodeURIComponent(addonToken)}/manifest.json`
+  );
+  assert.equal(pathManifest.status, 200);
+  assert.equal((await pathManifest.json()).id, 'community.cinephage.stremio.gateway');
+
+  const queryManifest = await fetch(
+    `${bridgeUrl}/manifest.json?token=${encodeURIComponent(addonToken)}`
+  );
+  assert.equal(queryManifest.status, 200);
+
+  const landingPage = await fetch(bridgeUrl).then((response) => response.text());
+  assert.doesNotMatch(landingPage, /shared(?:%20| )token/);
+  assert.match(landingPage, /&lt;ADDON_TOKEN&gt;\/manifest\.json/);
+  assert.match(landingPage, /Replace &lt;ADDON_TOKEN&gt;/);
 });

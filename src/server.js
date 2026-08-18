@@ -7,7 +7,8 @@ import { serveMedia } from './media-server.js';
 import { isStrmPath, readStrmTarget } from './strm.js';
 import { VERSION } from './version.js';
 
-const ADDON_ID = 'community.cinephage.nuvio.bridge';
+const ADDON_ID = 'community.cinephage.stremio.gateway';
+const ADDON_NAME = 'Cinephage Stremio Gateway';
 
 function sendJson(res, status, body, headers = {}) {
   res.writeHead(status, {
@@ -58,8 +59,8 @@ function manifest() {
   return {
     id: ADDON_ID,
     version: VERSION,
-    name: 'Cinephage Library',
-    description: 'Streams media already present in your Cinephage library.',
+    name: ADDON_NAME,
+    description: 'Exposes playable media from your Cinephage library through the Stremio Addon Protocol.',
     resources: ['catalog', 'meta', 'stream'],
     types: ['movie', 'series'],
     idPrefixes: ['tt', 'tmdb:'],
@@ -83,6 +84,20 @@ function publicBaseUrl(config, req) {
 function addonAuthorized(config, url) {
   if (!config.addonToken) return true;
   return url.searchParams.get('token') === config.addonToken;
+}
+
+function addonPath(config, pathname, url) {
+  if (!config.addonToken) return pathname;
+  const prefix = `/${encodeURIComponent(config.addonToken)}`;
+  if (pathname === prefix) return '/';
+  if (pathname.startsWith(`${prefix}/`)) return pathname.slice(prefix.length);
+  return addonAuthorized(config, url) ? pathname : null;
+}
+
+function manifestPath(config) {
+  return config.addonToken
+    ? '/&lt;ADDON_TOKEN&gt;/manifest.json'
+    : '/manifest.json';
 }
 
 export function createApp(config, logger) {
@@ -126,7 +141,7 @@ export function createApp(config, logger) {
   async function handler(req, res) {
     const started = performance.now();
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-    const pathname = url.pathname.replace(/\/{2,}/g, '/');
+    let pathname = url.pathname.replace(/\/{2,}/g, '/');
     res.setHeader('access-control-allow-origin', '*');
     res.setHeader('access-control-allow-methods', 'GET, HEAD, OPTIONS');
     res.setHeader('access-control-allow-headers', 'Range, Content-Type');
@@ -143,11 +158,16 @@ export function createApp(config, logger) {
 
       if (pathname === '/') {
         const base = publicBaseUrl(config, req);
-        const tokenSuffix = config.addonToken ? '?token=&lt;ADDON_TOKEN&gt;' : '';
+        const addonManifestPath = manifestPath(config);
+        const manifestUrl = `${base}${addonManifestPath}`;
+        const installUrl = manifestUrl.replace(/^https?:\/\//, 'stremio://');
+        const installLink = config.addonToken
+          ? '<p>Replace &lt;ADDON_TOKEN&gt; with the configured token before installing.</p>'
+          : `<p><a href="${installUrl}">Install in Stremio</a></p>`;
         return sendHtml(
           res,
           200,
-          `<!doctype html><html><head><meta charset="utf-8"><title>Cinephage Nuvio Bridge</title></head><body><h1>Cinephage Nuvio Bridge</h1><p>Install this addon URL in NuvioTV:</p><code>${base}/manifest.json${tokenSuffix}</code></body></html>`
+          `<!doctype html><html><head><meta charset="utf-8"><title>${ADDON_NAME}</title></head><body><h1>${ADDON_NAME}</h1><p>Install this Stremio-compatible addon in Stremio or NuvioTV:</p><code>${manifestUrl}</code>${installLink}</body></html>`
         );
       }
 
@@ -190,7 +210,8 @@ export function createApp(config, logger) {
       }
 
       if (req.method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });
-      if (!addonAuthorized(config, url)) return sendJson(res, 401, { error: 'Invalid addon token' });
+      pathname = addonPath(config, pathname, url);
+      if (!pathname) return sendJson(res, 401, { error: 'Invalid addon token' });
 
       if (pathname === '/manifest.json') return sendJson(res, 200, manifest());
 

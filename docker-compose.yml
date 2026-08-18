@@ -1,12 +1,12 @@
 services:
-  cinephage-nuvio-bridge:
-    image: ghcr.io/vampywiz17/cinephage-nuvio-bridge:${BRIDGE_VERSION:-0.3.0}
+  cinephage-stremio-gateway:
+    image: ghcr.io/vampywiz17/cinephage-stremio-gateway:${BRIDGE_VERSION:-0.4.0}
     pull_policy: build
     build:
       context: .
       args:
-        VERSION: ${BRIDGE_VERSION:-0.3.0}
-    container_name: cinephage-nuvio-bridge
+        VERSION: ${BRIDGE_VERSION:-0.4.0}
+    container_name: cinephage-stremio-gateway
     restart: unless-stopped
     environment:
       CINEPHAGE_URL: ${CINEPHAGE_URL:-http://cinephage:3000}

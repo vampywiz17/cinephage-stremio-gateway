@@ -258,7 +258,15 @@ export class MediaLibrary {
             title: episode.title || `Episode ${episode.episodeNumber}`,
             season: episode.seasonNumber,
             episode: episode.episodeNumber,
-            released: isoDate(episode.airDate),
+            released:
+              isoDate(
+                episode.airDate ||
+                  episode.file?.dateAdded ||
+                  detail.firstAirDate ||
+                  detail.added ||
+                  series.firstAirDate ||
+                  series.added
+              ) || '1970-01-01T00:00:00.000Z',
             overview: episode.overview || undefined,
             thumbnail: image(episode.stillPath, 'w780')
           })

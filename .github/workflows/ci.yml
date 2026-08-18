@@ -34,7 +34,7 @@ jobs:
         with:
           context: .
           push: false
-          tags: cinephage-nuvio-bridge:test
+          tags: cinephage-stremio-gateway:test
           build-args: VERSION=${{ steps.version.outputs.version }}
 
   review-image:
@@ -63,5 +63,5 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64
-          tags: ghcr.io/vampywiz17/cinephage-nuvio-bridge:pr-${{ github.event.pull_request.number }}
+          tags: ghcr.io/vampywiz17/cinephage-stremio-gateway:pr-${{ github.event.pull_request.number }}
           build-args: VERSION=${{ steps.version.outputs.version }}
