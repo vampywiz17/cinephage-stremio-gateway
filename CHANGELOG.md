@@ -7,6 +7,15 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-08-19
+
+### Fixed
+
+- Series metadata now includes every episode known to Cinephage, not only episodes with a
+  downloaded file. Stremio-compatible clients can retain the complete season list and resolve
+  missing episode streams from other addons, while the bridge still exposes streams only for
+  locally available files.
+
 ## [0.4.0] - 2026-08-18
 
 ### Added
@@ -47,7 +56,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Automated tests and Docker build validation.
 - Versioned multi-platform GHCR publishing with provenance, SBOM, and GitHub Releases.
 
-[Unreleased]: https://github.com/vampywiz17/cinephage-stremio-gateway/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/vampywiz17/cinephage-stremio-gateway/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/vampywiz17/cinephage-stremio-gateway/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/vampywiz17/cinephage-stremio-gateway/compare/v0.2.0...v0.4.0
 [0.2.0]: https://github.com/vampywiz17/cinephage-stremio-gateway/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/vampywiz17/cinephage-stremio-gateway/releases/tag/v0.1.0

@@ -205,7 +205,10 @@ test('exposes only downloaded titles and streams files with byte ranges', async 
   assert.equal(await ranged.text(), '2345');
 
   const seriesMeta = await fetch(`${bridgeUrl}/meta/series/tt0000199.json`).then((r) => r.json());
-  assert.deepEqual(seriesMeta.meta.videos.map((video) => video.id), ['tt0000199:1:1']);
+  assert.deepEqual(seriesMeta.meta.videos.map((video) => video.id), [
+    'tt0000199:1:1',
+    'tt0000199:1:2'
+  ]);
   assert.ok(seriesMeta.meta.videos.every((video) => !Number.isNaN(Date.parse(video.released))));
 
   const episodeStreams = await fetch(`${bridgeUrl}/stream/series/tt0000199:1:1.json`).then((r) => r.json());

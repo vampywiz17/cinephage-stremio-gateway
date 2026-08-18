@@ -255,7 +255,6 @@ export class MediaLibrary {
 
     for (const season of detail.seasons || []) {
       for (const episode of season.episodes || []) {
-        if (!isDownloadedFile(episode.file)) continue;
         videos.push(
           compact({
             id: `${canonicalId}:${episode.seasonNumber}:${episode.episodeNumber}`,
