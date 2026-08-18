@@ -1,6 +1,5 @@
 import path from 'node:path';
 import { canonicalMediaId, parseSeriesVideoId, sameMediaId } from './ids.js';
-import { isStrmPath } from './strm.js';
 
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p';
 
@@ -99,7 +98,7 @@ function formatBitrate(size, runtime) {
   return `${((bytes * 8) / seconds / 1_000_000).toFixed(1)} Mbps`;
 }
 
-function technicalDescription(file, filename, strm = false) {
+function technicalDescription(file, filename) {
   const quality = file.quality && typeof file.quality === 'object' ? file.quality : {};
   const mediaInfo = file.mediaInfo && typeof file.mediaInfo === 'object' ? file.mediaInfo : {};
   const resolution =
@@ -120,11 +119,11 @@ function technicalDescription(file, filename, strm = false) {
   const audioChannels = formatChannels(mediaInfo.audioChannels);
   const audioLanguages = formatLanguages(mediaInfo.audioLanguages);
   const subtitleLanguages = formatLanguages(mediaInfo.subtitleLanguages);
-  const bitrate = strm ? undefined : formatBitrate(file.size, mediaInfo.runtime);
-  const size = !strm && Number(file.size) > 0 ? formatBytes(Number(file.size)) : undefined;
+  const bitrate = formatBitrate(file.size, mediaInfo.runtime);
+  const size = Number(file.size) > 0 ? formatBytes(Number(file.size)) : undefined;
 
   const playback = unique([
-    strm ? 'STRM' : 'Direct Play',
+    'Direct Play',
     resolution,
     source,
     video || undefined,
@@ -178,15 +177,20 @@ function seriesPreview(series) {
 }
 
 function hasMovieFile(movie) {
-  return movie.hasFile === true && Array.isArray(movie.files) && movie.files.some(isPlayableFile);
+  return movie.hasFile === true && Array.isArray(movie.files) && movie.files.some(isDownloadedFile);
 }
 
 function hasSeriesFile(series) {
   return Number(series.episodeFileCount || 0) > 0;
 }
 
-function isPlayableFile(file) {
-  return file && typeof file.relativePath === 'string' && file.relativePath.length > 0;
+function isDownloadedFile(file) {
+  return (
+    file &&
+    typeof file.relativePath === 'string' &&
+    file.relativePath.length > 0 &&
+    !file.relativePath.toLowerCase().endsWith('.strm')
+  );
 }
 
 function isoDate(value) {
@@ -251,7 +255,7 @@ export class MediaLibrary {
 
     for (const season of detail.seasons || []) {
       for (const episode of season.episodes || []) {
-        if (!isPlayableFile(episode.file)) continue;
+        if (!isDownloadedFile(episode.file)) continue;
         videos.push(
           compact({
             id: `${canonicalId}:${episode.seasonNumber}:${episode.episodeNumber}`,
@@ -284,7 +288,7 @@ export class MediaLibrary {
     const movie = await this.findMovie(mediaId);
     if (!movie) return null;
     const file = movie.files.find(
-      (candidate) => isPlayableFile(candidate) && String(candidate.id) === String(fileId)
+      (candidate) => isDownloadedFile(candidate) && String(candidate.id) === String(fileId)
     );
     return file ? { type: 'movie', item: movie, file } : null;
   }
@@ -301,7 +305,7 @@ export class MediaLibrary {
         (candidate) =>
           candidate.seasonNumber === parsed.season &&
           candidate.episodeNumber === parsed.episode &&
-          isPlayableFile(candidate.file) &&
+          isDownloadedFile(candidate.file) &&
           String(candidate.file.id) === String(fileId)
       );
     return episode ? { type: 'series', item: detail, episode, file: episode.file } : null;
@@ -311,7 +315,7 @@ export class MediaLibrary {
     const movie = await this.findMovie(id);
     if (!movie) return [];
     const streams = [];
-    for (const file of movie.files.filter(isPlayableFile)) {
+    for (const file of movie.files.filter(isDownloadedFile)) {
       if (await isAvailable(movie, file)) {
         streams.push(this.#stream(movie, file, makeUrl, 'movie', id));
       }
@@ -331,15 +335,14 @@ export class MediaLibrary {
         (candidate) =>
           candidate.seasonNumber === parsed.season && candidate.episodeNumber === parsed.episode
       );
-    if (!isPlayableFile(episode?.file) || !(await isAvailable(detail, episode.file))) return [];
+    if (!isDownloadedFile(episode?.file) || !(await isAvailable(detail, episode.file))) return [];
     return [this.#stream(detail, episode.file, makeUrl, 'series', videoId)];
   }
 
   #stream(item, file, makeUrl, type, mediaId) {
-    const strm = isStrmPath(file.relativePath);
     const size = Number(file.size) || undefined;
     const filename = path.posix.basename(String(file.relativePath).replaceAll('\\', '/'));
-    const description = technicalDescription(file, filename, strm);
+    const description = technicalDescription(file, filename);
     return compact({
       name: 'Cinephage',
       title: description,
@@ -348,8 +351,8 @@ export class MediaLibrary {
       behaviorHints: compact({
         notWebReady: true,
         bingeGroup: `cinephage-${canonicalMediaId(item)}`,
-        filename: strm ? undefined : filename,
-        videoSize: strm ? undefined : size
+        filename,
+        videoSize: size
       })
     });
   }
