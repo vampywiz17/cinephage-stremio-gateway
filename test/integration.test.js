@@ -251,6 +251,7 @@ test('exposes only downloaded titles and streams files with byte ranges', async 
   const seriesMeta = await fetch(`${bridgeUrl}/meta/series/tt0000199.json`).then((r) => r.json());
   assert.deepEqual(seriesMeta.meta.videos.map((video) => video.id), [
     'tt0000199:1:1',
+    'tt0000199:1:2',
     'tt0000199:1:3'
   ]);
   assert.ok(seriesMeta.meta.videos.every((video) => !Number.isNaN(Date.parse(video.released))));
