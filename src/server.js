@@ -4,6 +4,7 @@ import { MediaLibrary } from './library.js';
 import { PathMapper } from './path-mapper.js';
 import { StreamTokenService } from './token.js';
 import { serveMedia } from './media-server.js';
+import { isStrmPath, readStrmTarget } from './strm.js';
 import { VERSION } from './version.js';
 
 const ADDON_ID = 'community.cinephage.stremio.gateway';
@@ -124,7 +125,8 @@ export function createApp(config, logger) {
   async function fileAvailable(item, file) {
     try {
       const filename = mapper.resolve(item.rootFolderPath, item.path, file.relativePath);
-      await mapper.verify(filename);
+      const verified = await mapper.verify(filename);
+      if (isStrmPath(verified)) await readStrmTarget(verified);
       return true;
     } catch (error) {
       logger.warn('Cinephage file record is not available on the mounted volume', {
@@ -187,6 +189,23 @@ export function createApp(config, logger) {
           return sendJson(res, 404, { error: 'Media is no longer available' });
         }
         if (!filename) return sendJson(res, 404, { error: 'Media is no longer available' });
+        if (isStrmPath(filename)) {
+          let target;
+          try {
+            target = await readStrmTarget(filename);
+          } catch (error) {
+            logger.warn('Signed STRM URL no longer resolves to a playable target', {
+              error: error instanceof Error ? error.message : String(error)
+            });
+            return sendJson(res, 404, { error: 'Media is no longer available' });
+          }
+          res.writeHead(307, {
+            location: target,
+            'cache-control': 'private, no-store',
+            'referrer-policy': 'no-referrer'
+          });
+          return res.end();
+        }
         return await serveMedia(req, res, filename);
       }
 

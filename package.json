@@ -1,6 +1,6 @@
 {
   "name": "cinephage-stremio-gateway",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "A minimal Stremio Addon Protocol bridge for Cinephage, compatible with Stremio and NuvioTV.",
   "type": "module",
   "private": true,

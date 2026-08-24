@@ -19,17 +19,21 @@ library metadata, while the bridge streams files from read-only mounted media vo
 ## What it does
 
 - Provides standard Stremio `manifest`, `catalog`, `meta`, and `stream` resources.
-- Shows only movies for which Cinephage reports `hasFile: true` and at least one downloaded file
-  record (`.strm` placeholders are excluded).
+- Shows only movies for which Cinephage reports `hasFile: true` and at least one playable file
+  record, including HTTP(S) `.strm` links.
 - Shows only series for which Cinephage reports at least one downloaded episode file.
 - Re-checks the Cinephage record and the mounted file before playback.
 - Streams files directly with HTTP byte ranges (`206 Partial Content`) and seeking support.
+- Resolves mounted HTTP(S) `.strm` files with a `307 Temporary Redirect`; stream data is not
+  proxied through the bridge.
 - Uses expiring HMAC-signed media URLs and never exposes filesystem paths.
 - Runs without a database, transcoder, npm dependencies, or build step.
 
 ## Important limitations
 
 - This is a direct-play bridge. It does not transcode unsupported video/audio formats.
+- A `.strm` target must be reachable from the device running the client. Docker-only hostnames and
+  non-HTTP(S) targets are not supported.
 - Stremio requires HTTPS for remote addons, except when the addon is served from `127.0.0.1`.
   NuvioTV may allow plain HTTP on a trusted LAN, depending on the platform.
 - The media folders must be mounted into the bridge container read-only.
@@ -71,7 +75,7 @@ version locally; release images are published to GHCR for `linux/amd64` and `lin
    ```
 
    Compose uses `pull_policy: build`, builds the image locally, and tags it as
-   `ghcr.io/vampywiz17/cinephage-stremio-gateway:0.4.1`. Set `BRIDGE_VERSION` if you are building a
+   `ghcr.io/vampywiz17/cinephage-stremio-gateway:0.5.0`. Set `BRIDGE_VERSION` if you are building a
    different checked-out release.
 
 5. Install the manifest URL in Stremio or NuvioTV:
@@ -219,13 +223,13 @@ To prepare a release:
 4. Create and push the matching tag, for example:
 
    ```bash
-   git tag -a v0.4.1 -m "v0.4.1"
-   git push origin v0.4.1
+   git tag -a v0.5.0 -m "v0.5.0"
+   git push origin v0.5.0
    ```
 
 Every push to `main` publishes a multi-platform `edge` image. A release tag additionally verifies
 the version, creates `linux/amd64` and `linux/arm64` images, publishes them to
-`ghcr.io/vampywiz17/cinephage-stremio-gateway`, attaches semantic tags (`0.4.1`, `0.4`, `0`, and
+`ghcr.io/vampywiz17/cinephage-stremio-gateway`, attaches semantic tags (`0.5.0`, `0.5`, `0`, and
 `latest` for stable releases), generates provenance and an SBOM, and creates a GitHub Release.
 
 Pull requests whose branch belongs to this repository publish an `linux/amd64` review image after
@@ -240,11 +244,13 @@ run it from a deployment-specific override file.
 
 The bridge deliberately distinguishes library metadata from downloaded media:
 
-- Movie: `hasFile === true` and at least one non-`.strm` file record.
+- Movie: `hasFile === true` and at least one media or `.strm` file record.
 - Series catalog: `episodeFileCount > 0`.
 - Series playback: the requested episode must contain a `file` record.
 - Stream response and media request: the same Cinephage file ID must still resolve and the mapped
   path must still be a non-empty regular file on disk. Symlinks may not escape the mounted root.
+- `.strm` playback: the mounted file must be at most 16 KB and its first non-empty line must be a
+  valid HTTP(S) URL. Its text-file size is not exposed as the video size.
 
 Consequently, monitored or metadata-only titles are not exposed as playable streams. The short
 cache TTL avoids repeatedly loading large libraries while still reflecting additions and removals

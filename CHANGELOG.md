@@ -7,6 +7,15 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-24
+
+### Added
+
+- Playback for mounted `.strm` files containing an HTTP(S) target, including Cinephage-generated,
+  manually created, and compatible virtual-library links.
+- Signed media URLs now resolve valid `.strm` files with a temporary redirect without proxying the
+  target stream.
+
 ## [0.4.1] - 2026-08-19
 
 ### Fixed
@@ -32,6 +41,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   name to `Cinephage Stremio Gateway`; existing installations must reinstall the addon.
 - Added path-based addon token URLs for Stremio while preserving legacy query-token compatibility.
 - Series episode metadata now always includes the Stremio-required `released` field.
+
 ## [0.2.0] - 2026-08-17
 
 ### Added
@@ -56,7 +66,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Automated tests and Docker build validation.
 - Versioned multi-platform GHCR publishing with provenance, SBOM, and GitHub Releases.
 
-[Unreleased]: https://github.com/vampywiz17/cinephage-stremio-gateway/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/vampywiz17/cinephage-stremio-gateway/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/vampywiz17/cinephage-stremio-gateway/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/vampywiz17/cinephage-stremio-gateway/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/vampywiz17/cinephage-stremio-gateway/compare/v0.2.0...v0.4.0
 [0.2.0]: https://github.com/vampywiz17/cinephage-stremio-gateway/compare/v0.1.0...v0.2.0

@@ -1,11 +1,11 @@
 services:
   cinephage-stremio-gateway:
-    image: ghcr.io/vampywiz17/cinephage-stremio-gateway:${BRIDGE_VERSION:-0.4.1}
+    image: ghcr.io/vampywiz17/cinephage-stremio-gateway:${BRIDGE_VERSION:-0.5.0}
     pull_policy: build
     build:
       context: .
       args:
-        VERSION: ${BRIDGE_VERSION:-0.4.1}
+        VERSION: ${BRIDGE_VERSION:-0.5.0}
     container_name: cinephage-stremio-gateway
     restart: unless-stopped
     environment:
