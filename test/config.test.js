@@ -7,7 +7,7 @@ test('loadConfig validates the bridge secret', () => {
     () =>
       loadConfig({
         CINEPHAGE_URL: 'http://cinephage:3000',
-        CINEPHAGE_API_KEY: 'key',
+        CINEPHAGE_STREAMING_API_KEY: 'key',
         BRIDGE_SECRET: 'short'
       }),
     /at least 32/
@@ -17,10 +17,10 @@ test('loadConfig validates the bridge secret', () => {
 test('loadConfig accepts the API-only configuration', () => {
   const config = loadConfig({
     CINEPHAGE_URL: 'http://cinephage:3000',
-    CINEPHAGE_API_KEY: 'key',
+    CINEPHAGE_STREAMING_API_KEY: 'key',
     BRIDGE_SECRET: 's'.repeat(32)
   });
 
   assert.equal(config.cinephageUrl, 'http://cinephage:3000');
-  assert.equal(config.apiKey, 'key');
+  assert.equal(config.streamingApiKey, 'key');
 });

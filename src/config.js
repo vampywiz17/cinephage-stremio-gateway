@@ -17,7 +17,7 @@ function required(env, name) {
 
 export function loadConfig(env = process.env) {
   const cinephageUrl = required(env, 'CINEPHAGE_URL').replace(/\/$/, '');
-  const apiKey = required(env, 'CINEPHAGE_API_KEY');
+  const streamingApiKey = required(env, 'CINEPHAGE_STREAMING_API_KEY');
   const secret = required(env, 'BRIDGE_SECRET');
   if (secret.length < MIN_SECRET_LENGTH) {
     throw new Error(`BRIDGE_SECRET must contain at least ${MIN_SECRET_LENGTH} characters`);
@@ -43,7 +43,7 @@ export function loadConfig(env = process.env) {
 
   return Object.freeze({
     cinephageUrl,
-    apiKey,
+    streamingApiKey,
     secret,
     port: positiveInteger(env.PORT, 8090, 'PORT'),
     publicUrl,

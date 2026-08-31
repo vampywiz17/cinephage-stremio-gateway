@@ -35,8 +35,8 @@ library metadata and serves registered library files through its authenticated s
 
 - This is a direct-play bridge. It does not transcode unsupported video/audio formats.
 - Version 0.6.0 requires Cinephage's local-library streaming API with the movie and episode
-  `GET`/`HEAD` endpoints under `/api/streaming/library/`. Use a Cinephage main API key so the
-  gateway can access both library metadata and media streams.
+  `GET`/`HEAD` endpoints under `/api/streaming/library/`. Configure Cinephage's dedicated Media
+  Streaming API Key; the Main API Key is not supported by the gateway.
 - A `.strm` target must be reachable from the device running the client. Docker-only hostnames and
   non-HTTP(S) targets are not supported.
 - Stremio requires HTTPS for remote addons, except when the addon is served from `127.0.0.1`.
@@ -56,7 +56,7 @@ version locally; release images are published to GHCR for `linux/amd64` and `lin
 
    ```env
    CINEPHAGE_URL=http://cinephage:3000
-   CINEPHAGE_API_KEY=your-cinephage-api-key
+   CINEPHAGE_STREAMING_API_KEY=your-cinephage-media-streaming-api-key
    BRIDGE_SECRET=generate-a-random-secret-with-at-least-32-characters
    PUBLIC_URL=http://192.168.1.20:8090
    ```
@@ -88,7 +88,7 @@ proxy and set `PUBLIC_URL` to the external HTTPS origin. Stremio accepts plain H
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
 | `CINEPHAGE_URL` | yes | — | Base URL of the Cinephage server. |
-| `CINEPHAGE_API_KEY` | yes | — | Cinephage API key, stored only by the bridge. |
+| `CINEPHAGE_STREAMING_API_KEY` | yes | — | Cinephage **Media Streaming API Key**, stored only by the bridge. Do not use the Main API Key. |
 | `BRIDGE_SECRET` | yes | — | At least 32 characters; signs expiring stream URLs. |
 | `PORT` | no | `8090` | HTTP listen port. |
 | `PUBLIC_URL` | recommended | inferred | Origin placed in stream URLs. Set this behind a proxy. |
