@@ -205,7 +205,7 @@ test('exposes only downloaded titles and streams files with byte ranges', async 
   const bridge = createApp(
     {
       cinephageUrl,
-      streamingApiKey: 'test-key',
+      apiKey: 'test-key',
       secret: 's'.repeat(32),
       publicUrl: '',
       addonToken: '',
@@ -332,7 +332,7 @@ test('supports Stremio path tokens and legacy query tokens', async (t) => {
   const bridge = createApp(
     {
       cinephageUrl: 'http://127.0.0.1:1',
-      streamingApiKey: 'test-key',
+      apiKey: 'test-key',
       secret: 's'.repeat(32),
       publicUrl: '',
       addonToken,

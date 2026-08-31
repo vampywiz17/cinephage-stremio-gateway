@@ -35,8 +35,8 @@ library metadata and serves registered library files through its authenticated s
 
 - This is a direct-play bridge. It does not transcode unsupported video/audio formats.
 - Version 0.6.0 requires Cinephage's local-library streaming API with the movie and episode
-  `GET`/`HEAD` endpoints under `/api/streaming/library/`. Configure Cinephage's dedicated Media
-  Streaming API Key; the Main API Key is not supported by the gateway.
+  `GET`/`HEAD` endpoints under `/api/streaming/library/`. Both Cinephage Main and Media Streaming
+  API Keys are supported; the narrower Media Streaming API Key is recommended.
 - A `.strm` target must be reachable from the device running the client. Docker-only hostnames and
   non-HTTP(S) targets are not supported.
 - Stremio requires HTTPS for remote addons, except when the addon is served from `127.0.0.1`.
@@ -57,6 +57,7 @@ version locally; release images are published to GHCR for `linux/amd64` and `lin
    ```env
    CINEPHAGE_URL=http://cinephage:3000
    CINEPHAGE_STREAMING_API_KEY=your-cinephage-media-streaming-api-key
+   # Alternatively: CINEPHAGE_API_KEY=your-cinephage-main-api-key
    BRIDGE_SECRET=generate-a-random-secret-with-at-least-32-characters
    PUBLIC_URL=http://192.168.1.20:8090
    ```
@@ -88,7 +89,8 @@ proxy and set `PUBLIC_URL` to the external HTTPS origin. Stremio accepts plain H
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
 | `CINEPHAGE_URL` | yes | — | Base URL of the Cinephage server. |
-| `CINEPHAGE_STREAMING_API_KEY` | yes | — | Cinephage **Media Streaming API Key**, stored only by the bridge. Do not use the Main API Key. |
+| `CINEPHAGE_API_KEY` | one key required | — | Cinephage **Main API Key**. Takes priority when both key variables are set. |
+| `CINEPHAGE_STREAMING_API_KEY` | one key required | — | Cinephage **Media Streaming API Key**. Recommended because it has narrower permissions. |
 | `BRIDGE_SECRET` | yes | — | At least 32 characters; signs expiring stream URLs. |
 | `PORT` | no | `8090` | HTTP listen port. |
 | `PUBLIC_URL` | recommended | inferred | Origin placed in stream URLs. Set this behind a proxy. |
@@ -98,6 +100,9 @@ proxy and set `PUBLIC_URL` to the external HTTPS origin. Stremio accepts plain H
 | `STREAM_TOKEN_TTL_SECONDS` | no | `21600` | Signed media URL lifetime. |
 | `CINEPHAGE_TIMEOUT_SECONDS` | no | `15` | Metadata and stream response-header timeout; active media transfers are not time-limited. |
 | `LOG_LEVEL` | no | `info` | `debug`, `info`, `warn`, or `error`. |
+
+Configure only one of the two API-key variables; there is no benefit to providing both. If both
+are set, `CINEPHAGE_API_KEY` takes priority.
 
 `BRIDGE_VERSION` is a Docker Compose interpolation variable rather than an application environment
 variable. Its default must match the version in `package.json`.

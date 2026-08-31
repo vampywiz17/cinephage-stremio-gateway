@@ -10,7 +10,8 @@ services:
     restart: unless-stopped
     environment:
       CINEPHAGE_URL: ${CINEPHAGE_URL:-http://cinephage:3000}
-      CINEPHAGE_STREAMING_API_KEY: ${CINEPHAGE_STREAMING_API_KEY}
+      CINEPHAGE_API_KEY: ${CINEPHAGE_API_KEY:-}
+      CINEPHAGE_STREAMING_API_KEY: ${CINEPHAGE_STREAMING_API_KEY:-}
       BRIDGE_SECRET: ${BRIDGE_SECRET}
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8090}
       ADDON_TOKEN: ${ADDON_TOKEN:-}

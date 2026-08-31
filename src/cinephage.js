@@ -35,7 +35,7 @@ export class CinephageClient {
       const response = await fetch(`${this.#config.cinephageUrl}${pathname}`, {
         headers: {
           accept: 'application/json',
-          'x-api-key': this.#config.streamingApiKey,
+          'x-api-key': this.#config.apiKey,
           'user-agent': `cinephage-stremio-gateway/${VERSION}`
         },
         signal: controller.signal
@@ -73,7 +73,7 @@ export class CinephageClient {
     try {
       const headers = {
         accept: '*/*',
-        'x-api-key': this.#config.streamingApiKey,
+        'x-api-key': this.#config.apiKey,
         'user-agent': `cinephage-stremio-gateway/${VERSION}`
       };
       if (range) headers.range = range;
