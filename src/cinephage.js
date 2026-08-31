@@ -1,3 +1,5 @@
+import { VERSION } from './version.js';
+
 export class CinephageError extends Error {
   constructor(message, status = 502, cause) {
     super(message, { cause });
@@ -34,7 +36,7 @@ export class CinephageClient {
         headers: {
           accept: 'application/json',
           'x-api-key': this.#config.apiKey,
-          'user-agent': 'cinephage-stremio-gateway/0.3'
+          'user-agent': `cinephage-stremio-gateway/${VERSION}`
         },
         signal: controller.signal
       });
@@ -53,6 +55,45 @@ export class CinephageClient {
       }
       throw new CinephageError('Unable to reach Cinephage', 502, error);
     } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async openLibraryFile({ type, fileId, method = 'GET', range, controller }) {
+    if (!['movie', 'episode'].includes(type)) {
+      throw new CinephageError(`Unsupported Cinephage library file type: ${type}`, 500);
+    }
+    if (!fileId) throw new CinephageError('Cinephage library file ID is required', 500);
+    if (!['GET', 'HEAD'].includes(method)) {
+      throw new CinephageError(`Unsupported Cinephage library file method: ${method}`, 500);
+    }
+
+    const requestController = controller || new AbortController();
+    const timeout = setTimeout(() => requestController.abort(), this.#config.cinephageTimeoutMs);
+    try {
+      const headers = {
+        accept: '*/*',
+        'x-api-key': this.#config.apiKey,
+        'user-agent': `cinephage-stremio-gateway/${VERSION}`
+      };
+      if (range) headers.range = range;
+
+      return await fetch(
+        `${this.#config.cinephageUrl}/api/streaming/library/${type}/${encodeURIComponent(fileId)}`,
+        {
+          method,
+          headers,
+          redirect: 'manual',
+          signal: requestController.signal
+        }
+      );
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        throw new CinephageError('Cinephage streaming request timed out or was cancelled', 504, error);
+      }
+      throw new CinephageError('Unable to reach the Cinephage streaming API', 502, error);
+    } finally {
+      // The timeout only protects connection setup and response headers. Media bodies may run for hours.
       clearTimeout(timeout);
     }
   }

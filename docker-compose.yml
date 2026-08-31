@@ -1,18 +1,17 @@
 services:
   cinephage-stremio-gateway:
-    image: ghcr.io/vampywiz17/cinephage-stremio-gateway:${BRIDGE_VERSION:-0.5.0}
+    image: ghcr.io/vampywiz17/cinephage-stremio-gateway:${BRIDGE_VERSION:-0.6.0}
     pull_policy: build
     build:
       context: .
       args:
-        VERSION: ${BRIDGE_VERSION:-0.5.0}
+        VERSION: ${BRIDGE_VERSION:-0.6.0}
     container_name: cinephage-stremio-gateway
     restart: unless-stopped
     environment:
       CINEPHAGE_URL: ${CINEPHAGE_URL:-http://cinephage:3000}
       CINEPHAGE_API_KEY: ${CINEPHAGE_API_KEY}
       BRIDGE_SECRET: ${BRIDGE_SECRET}
-      PATH_MAPPINGS: '${PATH_MAPPINGS:-{"/movies":"/media/movies","/tv":"/media/tv"}}'
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8090}
       ADDON_TOKEN: ${ADDON_TOKEN:-}
       LIBRARY_CACHE_TTL_SECONDS: ${LIBRARY_CACHE_TTL_SECONDS:-30}
@@ -21,9 +20,6 @@ services:
       TZ: ${TZ:-UTC}
     ports:
       - "8090:8090"
-    volumes:
-      - /path/to/movies:/media/movies:ro
-      - /path/to/tv:/media/tv:ro
     networks:
       - cinephage
 

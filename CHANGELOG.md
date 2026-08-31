@@ -7,11 +7,26 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-31
+
+### Changed
+
+- Media playback now uses Cinephage's authenticated local-library streaming API instead of
+  opening media files inside the gateway container.
+- Movie and episode streams proxy Cinephage `GET`, `HEAD`, and byte-range responses without
+  buffering complete media files.
+- `.strm` files are fetched and validated through the Cinephage API before redirecting clients.
+
+### Removed
+
+- Media directory mounts and Cinephage-to-gateway filesystem path mappings. The gateway no longer
+  requires access to Cinephage's storage.
+
 ## [0.5.0] - 2026-08-24
 
 ### Added
 
-- Playback for mounted `.strm` files containing an HTTP(S) target, including Cinephage-generated,
+- Playback for `.strm` files containing an HTTP(S) target, including Cinephage-generated,
   manually created, and compatible virtual-library links.
 - Signed media URLs now resolve valid `.strm` files with a temporary redirect without proxying the
   target stream.
@@ -62,11 +77,11 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial Cinephage library adapter and Stremio-compatible addon API.
 - Downloaded-file filtering for movies, series, and episodes.
 - Direct media streaming with byte ranges and expiring signed URLs.
-- Read-only Docker deployment with Cinephage-to-container path mappings.
 - Automated tests and Docker build validation.
 - Versioned multi-platform GHCR publishing with provenance, SBOM, and GitHub Releases.
 
-[Unreleased]: https://github.com/vampywiz17/cinephage-stremio-gateway/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/vampywiz17/cinephage-stremio-gateway/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/vampywiz17/cinephage-stremio-gateway/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/vampywiz17/cinephage-stremio-gateway/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/vampywiz17/cinephage-stremio-gateway/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/vampywiz17/cinephage-stremio-gateway/compare/v0.2.0...v0.4.0

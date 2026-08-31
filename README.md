@@ -11,7 +11,7 @@ It is designed for both [Stremio](https://www.stremio.com/) and Stremio-compatib
 as [NuvioTV](https://github.com/NuvioMedia/NuvioTV).
 
 The bridge does not modify either upstream project. Cinephage remains the source of truth for
-library metadata, while the bridge streams files from read-only mounted media volumes.
+library metadata and serves registered library files through its authenticated streaming API.
 
 > Upgrading from `cinephage-nuvio-bridge`: change the image, service, and container name to
 > `cinephage-stremio-gateway`. The addon must also be reinstalled because its manifest ID changed.
@@ -22,21 +22,25 @@ library metadata, while the bridge streams files from read-only mounted media vo
 - Shows only movies for which Cinephage reports `hasFile: true` and at least one playable file
   record, including HTTP(S) `.strm` links.
 - Shows only series for which Cinephage reports at least one downloaded episode file.
-- Re-checks the Cinephage record and the mounted file before playback.
-- Streams files directly with HTTP byte ranges (`206 Partial Content`) and seeking support.
-- Resolves mounted HTTP(S) `.strm` files with a `307 Temporary Redirect`; stream data is not
-  proxied through the bridge.
-- Uses expiring HMAC-signed media URLs and never exposes filesystem paths.
+- Re-checks the Cinephage record and streaming API before playback.
+- Proxies Cinephage library streams with HTTP byte ranges (`206 Partial Content`) and seeking
+  support.
+- Resolves HTTP(S) `.strm` files fetched through Cinephage with a `307 Temporary Redirect`;
+  stream data is not proxied through the bridge.
+- Uses expiring HMAC-signed media URLs and never exposes the gateway's configured Cinephage API
+  key.
 - Runs without a database, transcoder, npm dependencies, or build step.
 
 ## Important limitations
 
 - This is a direct-play bridge. It does not transcode unsupported video/audio formats.
+- Version 0.6.0 requires Cinephage's local-library streaming API with the movie and episode
+  `GET`/`HEAD` endpoints under `/api/streaming/library/`. Use a Cinephage main API key so the
+  gateway can access both library metadata and media streams.
 - A `.strm` target must be reachable from the device running the client. Docker-only hostnames and
   non-HTTP(S) targets are not supported.
 - Stremio requires HTTPS for remote addons, except when the addon is served from `127.0.0.1`.
   NuvioTV may allow plain HTTP on a trusted LAN, depending on the platform.
-- The media folders must be mounted into the bridge container read-only.
 - Cinephage's library API is not currently a formally versioned public API. The bridge uses a
   small adapter and validates response shapes, but a future upstream API change may require an
   update.
@@ -55,18 +59,9 @@ version locally; release images are published to GHCR for `linux/amd64` and `lin
    CINEPHAGE_API_KEY=your-cinephage-api-key
    BRIDGE_SECRET=generate-a-random-secret-with-at-least-32-characters
    PUBLIC_URL=http://192.168.1.20:8090
-   PATH_MAPPINGS={"/movies":"/media/movies","/tv":"/media/tv"}
    ```
 
-3. Edit the volume sources in `docker-compose.yml`:
-
-   ```yaml
-   volumes:
-     - /mnt/storage/movies:/media/movies:ro
-     - /mnt/storage/tv:/media/tv:ro
-   ```
-
-4. Ensure the bridge and Cinephage share a Docker network. The example expects an existing
+3. Ensure the bridge and Cinephage share a Docker network. The example expects an existing
    network called `cinephage`:
 
    ```bash
@@ -75,10 +70,10 @@ version locally; release images are published to GHCR for `linux/amd64` and `lin
    ```
 
    Compose uses `pull_policy: build`, builds the image locally, and tags it as
-   `ghcr.io/vampywiz17/cinephage-stremio-gateway:0.5.0`. Set `BRIDGE_VERSION` if you are building a
+   `ghcr.io/vampywiz17/cinephage-stremio-gateway:0.6.0`. Set `BRIDGE_VERSION` if you are building a
    different checked-out release.
 
-5. Install the manifest URL in Stremio or NuvioTV:
+4. Install the manifest URL in Stremio or NuvioTV:
 
    ```text
    http://192.168.1.20:8090/manifest.json
@@ -88,41 +83,6 @@ For Stremio, or for any access outside a trusted LAN, place the bridge behind an
 proxy and set `PUBLIC_URL` to the external HTTPS origin. Stremio accepts plain HTTP only from
 `127.0.0.1`.
 
-## Path mappings
-
-Cinephage returns paths as seen inside the Cinephage container. The bridge sees paths inside its
-own container, so the prefixes must be translated.
-
-Example Cinephage configuration:
-
-```text
-Movie root: /data/movies
-TV root:    /data/tv
-```
-
-Bridge mounts:
-
-```yaml
-volumes:
-  - /mnt/media/movies:/media/movies:ro
-  - /mnt/media/tv:/media/tv:ro
-```
-
-Mapping:
-
-```env
-PATH_MAPPINGS={"/data/movies":"/media/movies","/data/tv":"/media/tv"}
-```
-
-Windows paths reported by a bare-metal Cinephage instance are also accepted:
-
-```env
-PATH_MAPPINGS={"D:/Movies":"/media/movies","D:/TV":"/media/tv"}
-```
-
-The longest matching source prefix wins. Every resolved path is checked to ensure it remains
-inside one of the configured target roots.
-
 ## Configuration
 
 | Variable | Required | Default | Description |
@@ -130,14 +90,13 @@ inside one of the configured target roots.
 | `CINEPHAGE_URL` | yes | — | Base URL of the Cinephage server. |
 | `CINEPHAGE_API_KEY` | yes | — | Cinephage API key, stored only by the bridge. |
 | `BRIDGE_SECRET` | yes | — | At least 32 characters; signs expiring stream URLs. |
-| `PATH_MAPPINGS` | yes | — | JSON object or comma-separated `source=target` mappings. |
 | `PORT` | no | `8090` | HTTP listen port. |
 | `PUBLIC_URL` | recommended | inferred | Origin placed in stream URLs. Set this behind a proxy. |
 | `ADDON_TOKEN` | no | empty | Optional shared token required on addon API requests. |
 | `LIBRARY_CACHE_TTL_SECONDS` | no | `30` | Movie and series-list cache lifetime. |
 | `SERIES_CACHE_TTL_SECONDS` | no | `30` | Series-detail cache lifetime. |
 | `STREAM_TOKEN_TTL_SECONDS` | no | `21600` | Signed media URL lifetime. |
-| `CINEPHAGE_TIMEOUT_SECONDS` | no | `15` | Upstream request timeout. |
+| `CINEPHAGE_TIMEOUT_SECONDS` | no | `15` | Metadata and stream response-header timeout; active media transfers are not time-limited. |
 | `LOG_LEVEL` | no | `info` | `debug`, `info`, `warn`, or `error`. |
 
 `BRIDGE_VERSION` is a Docker Compose interpolation variable rather than an application environment
@@ -223,13 +182,13 @@ To prepare a release:
 4. Create and push the matching tag, for example:
 
    ```bash
-   git tag -a v0.5.0 -m "v0.5.0"
-   git push origin v0.5.0
+   git tag -a v0.6.0 -m "v0.6.0"
+   git push origin v0.6.0
    ```
 
 Every push to `main` publishes a multi-platform `edge` image. A release tag additionally verifies
 the version, creates `linux/amd64` and `linux/arm64` images, publishes them to
-`ghcr.io/vampywiz17/cinephage-stremio-gateway`, attaches semantic tags (`0.5.0`, `0.5`, `0`, and
+`ghcr.io/vampywiz17/cinephage-stremio-gateway`, attaches semantic tags (`0.6.0`, `0.6`, `0`, and
 `latest` for stable releases), generates provenance and an SBOM, and creates a GitHub Release.
 
 Pull requests whose branch belongs to this repository publish an `linux/amd64` review image after
@@ -247,9 +206,9 @@ The bridge deliberately distinguishes library metadata from downloaded media:
 - Movie: `hasFile === true` and at least one media or `.strm` file record.
 - Series catalog: `episodeFileCount > 0`.
 - Series playback: the requested episode must contain a `file` record.
-- Stream response and media request: the same Cinephage file ID must still resolve and the mapped
-  path must still be a non-empty regular file on disk. Symlinks may not escape the mounted root.
-- `.strm` playback: the mounted file must be at most 16 KB and its first non-empty line must be a
+- Stream response and media request: the same Cinephage file ID must still resolve through the
+  authenticated Cinephage streaming API.
+- `.strm` playback: the API response must be at most 16 KB and its first non-empty line must be a
   valid HTTP(S) URL. Its text-file size is not exposed as the video size.
 
 Consequently, monitored or metadata-only titles are not exposed as playable streams. The short

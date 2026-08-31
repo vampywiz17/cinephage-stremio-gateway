@@ -1,10 +1,9 @@
 import http from 'node:http';
 import { CinephageClient, CinephageError } from './cinephage.js';
 import { MediaLibrary } from './library.js';
-import { PathMapper } from './path-mapper.js';
 import { StreamTokenService } from './token.js';
-import { serveMedia } from './media-server.js';
 import { isStrmPath, readStrmTarget } from './strm.js';
+import { proxyLibraryFile } from './media-proxy.js';
 import { VERSION } from './version.js';
 
 const ADDON_ID = 'community.cinephage.stremio.gateway';
@@ -103,33 +102,74 @@ function manifestPath(config) {
 export function createApp(config, logger) {
   const client = new CinephageClient(config, logger);
   const library = new MediaLibrary(client);
-  const mapper = new PathMapper(config.pathMappings);
   const tokens = new StreamTokenService(config.secret, config.streamTokenTtlSeconds);
 
-  async function resolveClaimsFile(claims) {
-    const resolved =
+  async function resolveClaimsMedia(claims) {
+    return (
       claims.type === 'movie'
         ? await library.resolveMovieFile(claims.mediaId, claims.fileId)
         : claims.type === 'series'
           ? await library.resolveEpisodeFile(claims.mediaId, claims.fileId)
-          : null;
-    if (!resolved) return null;
-    const filename = mapper.resolve(
-      resolved.item.rootFolderPath,
-      resolved.item.path,
-      resolved.file.relativePath
+          : null
     );
-    return await mapper.verify(filename);
   }
 
-  async function fileAvailable(item, file) {
+  function upstreamType(type) {
+    return type === 'movie' ? 'movie' : 'episode';
+  }
+
+  async function fetchStrmTarget(type, fileId) {
+    const controller = new AbortController();
+    const response = await client.openLibraryFile({
+      type: upstreamType(type),
+      fileId,
+      method: 'GET',
+      controller
+    });
     try {
-      const filename = mapper.resolve(item.rootFolderPath, item.path, file.relativePath);
-      const verified = await mapper.verify(filename);
-      if (isStrmPath(verified)) await readStrmTarget(verified);
-      return true;
+      if (response.status === 401 || response.status === 403) {
+        throw new CinephageError('Cinephage streaming authentication failed', 503);
+      }
+      if (response.status === 404) return null;
+      if (response.status !== 200) {
+        throw new CinephageError(
+          `Cinephage returned HTTP ${response.status} for a STRM file`,
+          502
+        );
+      }
+      return await readStrmTarget(response);
+    } finally {
+      if (!response.bodyUsed) await response.body?.cancel();
+      controller.abort();
+    }
+  }
+
+  async function fileAvailable(type, file) {
+    try {
+      if (isStrmPath(file.relativePath)) {
+        return Boolean(await fetchStrmTarget(type, file.id));
+      }
+
+      const controller = new AbortController();
+      const response = await client.openLibraryFile({
+        type: upstreamType(type),
+        fileId: file.id,
+        method: 'HEAD',
+        controller
+      });
+      controller.abort();
+      if (response.status === 200) return true;
+      if (response.status === 404) return false;
+      if (response.status === 401 || response.status === 403) {
+        throw new CinephageError('Cinephage streaming authentication failed', 503);
+      }
+      throw new CinephageError(
+        `Cinephage returned HTTP ${response.status} while checking a library file`,
+        502
+      );
     } catch (error) {
-      logger.warn('Cinephage file record is not available on the mounted volume', {
+      if (error instanceof CinephageError && error.status !== 404) throw error;
+      logger.warn('Cinephage file record is not available through the streaming API', {
         fileId: file.id,
         relativePath: file.relativePath,
         error: error instanceof Error ? error.message : String(error)
@@ -179,26 +219,29 @@ export function createApp(config, logger) {
         } catch (error) {
           return sendJson(res, 401, { error: error.message });
         }
-        let filename;
+        let resolved;
         try {
-          filename = await resolveClaimsFile(claims);
+          resolved = await resolveClaimsMedia(claims);
         } catch (error) {
-          logger.warn('Signed media URL no longer resolves to an available file', {
+          if (error instanceof CinephageError) throw error;
+          logger.warn('Signed media URL no longer resolves to a Cinephage file record', {
             error: error instanceof Error ? error.message : String(error)
           });
           return sendJson(res, 404, { error: 'Media is no longer available' });
         }
-        if (!filename) return sendJson(res, 404, { error: 'Media is no longer available' });
-        if (isStrmPath(filename)) {
+        if (!resolved) return sendJson(res, 404, { error: 'Media is no longer available' });
+        if (isStrmPath(resolved.file.relativePath)) {
           let target;
           try {
-            target = await readStrmTarget(filename);
+            target = await fetchStrmTarget(claims.type, resolved.file.id);
           } catch (error) {
+            if (error instanceof CinephageError) throw error;
             logger.warn('Signed STRM URL no longer resolves to a playable target', {
               error: error instanceof Error ? error.message : String(error)
             });
             return sendJson(res, 404, { error: 'Media is no longer available' });
           }
+          if (!target) return sendJson(res, 404, { error: 'Media is no longer available' });
           res.writeHead(307, {
             location: target,
             'cache-control': 'private, no-store',
@@ -206,7 +249,14 @@ export function createApp(config, logger) {
           });
           return res.end();
         }
-        return await serveMedia(req, res, filename);
+        const filename = String(resolved.file.relativePath).replaceAll('\\', '/').split('/').pop();
+        return await proxyLibraryFile(req, res, {
+          client,
+          type: upstreamType(claims.type),
+          fileId: resolved.file.id,
+          filename,
+          logger
+        });
       }
 
       if (req.method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });
@@ -249,8 +299,10 @@ export function createApp(config, logger) {
         const makeUrl = (claims) => `${base}/media/${tokens.create(claims)}`;
         const streams =
           type === 'movie'
-            ? await library.movieStreams(id, makeUrl, fileAvailable)
-            : await library.episodeStreams(id, makeUrl, fileAvailable);
+            ? await library.movieStreams(id, makeUrl, (_item, file) => fileAvailable('movie', file))
+            : await library.episodeStreams(id, makeUrl, (_item, file) =>
+                fileAvailable('series', file)
+              );
         return sendJson(res, 200, { streams }, { 'cache-control': 'no-store' });
       }
 

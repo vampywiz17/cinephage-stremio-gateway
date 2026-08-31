@@ -17,8 +17,7 @@ server.listen(config.port, '0.0.0.0', () => {
   logger.info('Cinephage Stremio Gateway started', {
     port: config.port,
     cinephageUrl: config.cinephageUrl,
-    publicUrl: config.publicUrl || 'request-derived',
-    pathMappings: config.pathMappings.map(({ source, target }) => ({ source, target }))
+    publicUrl: config.publicUrl || 'request-derived'
   });
 });
 

@@ -1,13 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import path from 'node:path';
-import { loadConfig, parsePathMappings } from '../src/config.js';
-
-test('parsePathMappings accepts JSON and prefers the longest prefix', () => {
-  const mappings = parsePathMappings('{"/media":"/mnt/all","/media/tv":"/mnt/tv"}');
-  assert.equal(mappings[0].source, '/media/tv');
-  assert.equal(mappings[0].target, path.resolve('/mnt/tv'));
-});
+import { loadConfig } from '../src/config.js';
 
 test('loadConfig validates the bridge secret', () => {
   assert.throws(
@@ -15,9 +8,19 @@ test('loadConfig validates the bridge secret', () => {
       loadConfig({
         CINEPHAGE_URL: 'http://cinephage:3000',
         CINEPHAGE_API_KEY: 'key',
-        BRIDGE_SECRET: 'short',
-        PATH_MAPPINGS: '/movies=/media/movies'
+        BRIDGE_SECRET: 'short'
       }),
     /at least 32/
   );
+});
+
+test('loadConfig accepts the API-only configuration', () => {
+  const config = loadConfig({
+    CINEPHAGE_URL: 'http://cinephage:3000',
+    CINEPHAGE_API_KEY: 'key',
+    BRIDGE_SECRET: 's'.repeat(32)
+  });
+
+  assert.equal(config.cinephageUrl, 'http://cinephage:3000');
+  assert.equal(config.apiKey, 'key');
 });

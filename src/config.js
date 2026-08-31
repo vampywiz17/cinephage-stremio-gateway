@@ -1,5 +1,3 @@
-import path from 'node:path';
-
 const MIN_SECRET_LENGTH = 32;
 
 function positiveInteger(value, fallback, name) {
@@ -9,46 +7,6 @@ function positiveInteger(value, fallback, name) {
     throw new Error(`${name} must be a positive integer`);
   }
   return parsed;
-}
-
-function normalizeSourcePrefix(value) {
-  const normalized = value.replaceAll('\\', '/').replace(/\/$/, '');
-  return normalized || '/';
-}
-
-export function parsePathMappings(value) {
-  if (!value?.trim()) {
-    throw new Error('PATH_MAPPINGS is required');
-  }
-
-  let entries;
-  const trimmed = value.trim();
-  if (trimmed.startsWith('{')) {
-    const parsed = JSON.parse(trimmed);
-    entries = Object.entries(parsed);
-  } else {
-    entries = trimmed.split(',').map((item) => {
-      const separator = item.indexOf('=');
-      if (separator < 1) {
-        throw new Error(`Invalid PATH_MAPPINGS entry: ${item}`);
-      }
-      return [item.slice(0, separator), item.slice(separator + 1)];
-    });
-  }
-
-  if (entries.length === 0) throw new Error('PATH_MAPPINGS cannot be empty');
-
-  return entries
-    .map(([source, target]) => {
-      if (typeof source !== 'string' || typeof target !== 'string' || !source || !target) {
-        throw new Error('PATH_MAPPINGS keys and values must be non-empty strings');
-      }
-      return {
-        source: normalizeSourcePrefix(source),
-        target: path.resolve(target)
-      };
-    })
-    .sort((a, b) => b.source.length - a.source.length);
 }
 
 function required(env, name) {
@@ -87,7 +45,6 @@ export function loadConfig(env = process.env) {
     cinephageUrl,
     apiKey,
     secret,
-    pathMappings: parsePathMappings(required(env, 'PATH_MAPPINGS')),
     port: positiveInteger(env.PORT, 8090, 'PORT'),
     publicUrl,
     addonToken: env.ADDON_TOKEN?.trim() || '',
