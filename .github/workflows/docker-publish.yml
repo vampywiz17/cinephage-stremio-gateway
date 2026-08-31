@@ -2,7 +2,7 @@ name: Publish container
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     tags: ['v*.*.*']
 
 concurrency:
@@ -43,7 +43,8 @@ jobs:
         with:
           images: ghcr.io/vampywiz17/cinephage-stremio-gateway
           tags: |
-            type=raw,value=edge,enable=${{ github.ref_type == 'branch' }}
+            type=raw,value=edge,enable=${{ github.ref_type == 'branch' && github.ref_name == 'main' }}
+            type=raw,value=dev,enable=${{ github.ref_type == 'branch' && github.ref_name == 'dev' }}
             type=semver,pattern={{version}},enable=${{ github.ref_type == 'tag' }}
             type=semver,pattern={{major}}.{{minor}},enable=${{ github.ref_type == 'tag' }}
             type=semver,pattern={{major}},enable=${{ github.ref_type == 'tag' }}
