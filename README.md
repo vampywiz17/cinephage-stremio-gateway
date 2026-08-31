@@ -56,8 +56,7 @@ version locally; release images are published to GHCR for `linux/amd64` and `lin
 
    ```env
    CINEPHAGE_URL=http://cinephage:3000
-   CINEPHAGE_STREAMING_API_KEY=your-cinephage-media-streaming-api-key
-   # Alternatively: CINEPHAGE_API_KEY=your-cinephage-main-api-key
+   CINEPHAGE_API_KEY=your-cinephage-media-streaming-api-key
    BRIDGE_SECRET=generate-a-random-secret-with-at-least-32-characters
    PUBLIC_URL=http://192.168.1.20:8090
    ```
@@ -89,8 +88,7 @@ proxy and set `PUBLIC_URL` to the external HTTPS origin. Stremio accepts plain H
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
 | `CINEPHAGE_URL` | yes | — | Base URL of the Cinephage server. |
-| `CINEPHAGE_API_KEY` | one key required | — | Cinephage **Main API Key**. Takes priority when both key variables are set. |
-| `CINEPHAGE_STREAMING_API_KEY` | one key required | — | Cinephage **Media Streaming API Key**. Recommended because it has narrower permissions. |
+| `CINEPHAGE_API_KEY` | yes | — | Cinephage Main or Media Streaming API Key. The Media Streaming API Key is recommended because it has narrower permissions. |
 | `BRIDGE_SECRET` | yes | — | At least 32 characters; signs expiring stream URLs. |
 | `PORT` | no | `8090` | HTTP listen port. |
 | `PUBLIC_URL` | recommended | inferred | Origin placed in stream URLs. Set this behind a proxy. |
@@ -100,9 +98,6 @@ proxy and set `PUBLIC_URL` to the external HTTPS origin. Stremio accepts plain H
 | `STREAM_TOKEN_TTL_SECONDS` | no | `21600` | Signed media URL lifetime. |
 | `CINEPHAGE_TIMEOUT_SECONDS` | no | `15` | Metadata and stream response-header timeout; active media transfers are not time-limited. |
 | `LOG_LEVEL` | no | `info` | `debug`, `info`, `warn`, or `error`. |
-
-Configure only one of the two API-key variables; there is no benefit to providing both. If both
-are set, `CINEPHAGE_API_KEY` takes priority.
 
 `BRIDGE_VERSION` is a Docker Compose interpolation variable rather than an application environment
 variable. Its default must match the version in `package.json`.
